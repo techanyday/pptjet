@@ -76,48 +76,106 @@ class PPTGenerator:
             if style_type in ['title', 'subtitle']:
                 paragraph.alignment = PP_ALIGN.CENTER
 
-    def _get_layout_by_name(self, prs: Presentation, layout_name: str) -> Optional[any]:
-        """Find a slide layout by its name"""
-        for layout in prs.slide_layouts:
-            if layout.name.lower() == layout_name.lower():
-                return layout
+    def _get_layout_by_name(self, prs: Presentation, layout_names: List[str]) -> Optional[any]:
+        """Find a slide layout by trying multiple possible names"""
+        # First try exact matches
+        for name in layout_names:
+            for layout in prs.slide_layouts:
+                if layout.name.lower() == name.lower():
+                    return layout
+        
+        # Then try partial matches
+        for name in layout_names:
+            for layout in prs.slide_layouts:
+                if name.lower() in layout.name.lower():
+                    return layout
+        
         return None
 
     def _get_title_layout(self, prs: Presentation) -> any:
         """Get the title slide layout"""
-        # Try to find a layout specifically for title slides
-        layout = self._get_layout_by_name(prs, "Title Slide")
-        if not layout:
-            layout = self._get_layout_by_name(prs, "Title")
-        if not layout:
-            # Fallback to first layout which is typically the title layout
-            layout = prs.slide_layouts[0]
-        return layout
+        # Common names for title layouts
+        title_layouts = [
+            "Title Slide",
+            "Title",
+            "Cover",
+            "Opening",
+            "Front Page"
+        ]
+        
+        # Try to find by name first
+        layout = self._get_layout_by_name(prs, title_layouts)
+        if layout:
+            return layout
+            
+        # Fallback: Look for layout with title placeholder but no body
+        for layout in prs.slide_layouts:
+            has_title = False
+            has_body = False
+            for shape in layout.placeholders:
+                if shape.placeholder_format.idx == 0:  # Title
+                    has_title = True
+                if shape.placeholder_format.idx == 1:  # Body
+                    has_body = True
+            if has_title and not has_body:
+                return layout
+        
+        # Last resort: use first layout
+        return prs.slide_layouts[0]
 
     def _get_content_layout(self, prs: Presentation) -> any:
         """Get the content slide layout"""
-        # Try to find a layout specifically for content
-        layout = self._get_layout_by_name(prs, "Title and Content")
-        if not layout:
-            layout = self._get_layout_by_name(prs, "Content")
-        if not layout:
-            # Fallback to second layout which is typically for content
-            layout = prs.slide_layouts[1] if len(prs.slide_layouts) > 1 else prs.slide_layouts[0]
-        return layout
+        # Common names for content layouts
+        content_layouts = [
+            "Title and Content",
+            "Section",
+            "Content",
+            "Text",
+            "Body",
+            "Bullet",
+            "Title and Text"
+        ]
+        
+        # Try to find by name first
+        layout = self._get_layout_by_name(prs, content_layouts)
+        if layout:
+            return layout
+            
+        # Fallback: Look for layout with both title and body placeholders
+        for layout in prs.slide_layouts:
+            has_title = False
+            has_body = False
+            for shape in layout.placeholders:
+                if shape.placeholder_format.idx == 0:  # Title
+                    has_title = True
+                if shape.placeholder_format.idx == 1:  # Body
+                    has_body = True
+            if has_title and has_body:
+                return layout
+        
+        # Last resort: use second layout if available, otherwise first
+        return prs.slide_layouts[1] if len(prs.slide_layouts) > 1 else prs.slide_layouts[0]
 
     def _add_title_slide(self, prs: Presentation, title: str, presenter: str):
         """Add title slide"""
         layout = self._get_title_layout(prs)
         slide = prs.slides.add_slide(layout)
         
-        # Add title if title placeholder exists
-        if slide.shapes.title:
-            slide.shapes.title.text = title
+        # Find and populate title placeholder
+        title_placeholder = None
+        for shape in slide.placeholders:
+            if shape.placeholder_format.idx == 0:  # Title
+                title_placeholder = shape
+                break
         
-        # Add subtitle if subtitle placeholder exists
+        if title_placeholder:
+            title_placeholder.text = title
+        
+        # Find and populate subtitle/presenter placeholder
         subtitle = None
         for shape in slide.placeholders:
-            if shape.placeholder_format.idx == 1:  # Subtitle placeholder
+            # Look for subtitle or text placeholder
+            if shape.placeholder_format.idx in [1, 2]:  # Common indices for subtitles
                 subtitle = shape
                 break
         
@@ -129,14 +187,21 @@ class PPTGenerator:
         layout = self._get_content_layout(prs)
         slide = prs.slides.add_slide(layout)
         
-        # Add title if title placeholder exists
-        if slide.shapes.title:
-            slide.shapes.title.text = title
+        # Find and populate title placeholder
+        title_placeholder = None
+        for shape in slide.placeholders:
+            if shape.placeholder_format.idx == 0:  # Title
+                title_placeholder = shape
+                break
         
-        # Find content placeholder
+        if title_placeholder:
+            title_placeholder.text = title
+        
+        # Find content placeholder - try multiple indices
         content_placeholder = None
         for shape in slide.placeholders:
-            if shape.placeholder_format.idx == 1:  # Content placeholder
+            # Common indices for content/body placeholders
+            if shape.placeholder_format.idx in [1, 2, 3]:
                 content_placeholder = shape
                 break
         
@@ -159,6 +224,17 @@ class PPTGenerator:
                 p.space_before = Pt(12)
                 p.space_after = Pt(12)
                 p.line_spacing = 1.2
+
+    def _debug_print_layouts(self, prs: Presentation):
+        """Print all available layouts in the presentation for debugging"""
+        print(f"\nAvailable Layouts in template:")
+        for i, layout in enumerate(prs.slide_layouts):
+            print(f"Layout {i}: {layout.name}")
+            # Print placeholders in this layout
+            print("  Placeholders:")
+            for shape in layout.placeholders:
+                print(f"    - {shape.name} (idx: {shape.placeholder_format.idx})")
+        print("\n")
 
     def get_relevant_image(self, query: str) -> Optional[str]:
         """Get relevant image URL from Pexels API"""
@@ -269,6 +345,8 @@ class PPTGenerator:
         template_path = self.get_template_path(template)
         try:
             prs = Presentation(template_path)
+            # Debug: Print available layouts
+            self._debug_print_layouts(prs)
             # Remove any existing slides while preserving the template
             self._remove_all_slides(prs)
         except Exception as e:
