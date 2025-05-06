@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: pptjet
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: waitress-serve --port=$PORT wsgi:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.11
