@@ -156,9 +156,17 @@ class PPTGenerator:
         # Last resort: use second layout if available, otherwise first
         return prs.slide_layouts[1] if len(prs.slide_layouts) > 1 else prs.slide_layouts[0]
 
+    def get_named_layout(self, prs, preferred_names):
+        """Find a layout by name from a list of preferred names"""
+        for layout in prs.slide_layouts:
+            if layout.name in preferred_names:
+                return layout
+        return prs.slide_layouts[0]  # fallback
+
     def _add_title_slide(self, prs: Presentation, title: str, presenter: str):
         """Add title slide"""
-        layout = self._get_title_layout(prs)
+        preferred_names = ["Title Slide", "Title", "Opening Layout"]
+        layout = self.get_named_layout(prs, preferred_names)
         slide = prs.slides.add_slide(layout)
         
         # Find and populate title placeholder
@@ -184,7 +192,8 @@ class PPTGenerator:
 
     def _add_content_slide(self, prs: Presentation, title: str, content: str):
         """Add content slide"""
-        layout = self._get_content_layout(prs)
+        preferred_names = ["Title and Content", "Title and Body", "Content", "Text and Content"]
+        layout = self.get_named_layout(prs, preferred_names)
         slide = prs.slides.add_slide(layout)
         
         # Find and populate title placeholder
