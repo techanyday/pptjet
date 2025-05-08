@@ -227,13 +227,20 @@ class PPTGenerator:
 
     def _debug_print_layouts(self, prs: Presentation):
         """Print all available layouts in the presentation for debugging"""
-        print(f"\nAvailable Layouts in template:")
-        for i, layout in enumerate(prs.slide_layouts):
-            print(f"Layout {i}: {layout.name}")
-            # Print placeholders in this layout
-            print("  Placeholders:")
-            for shape in layout.placeholders:
-                print(f"    - {shape.name} (idx: {shape.placeholder_format.idx})")
+        print(f"\nPresentation Details:")
+        print(f"Slide Masters: {len(prs.slide_masters)}")
+        for i, master in enumerate(prs.slide_masters):
+            print(f"\nMaster {i}:")
+            print(f"  Background: {master.background}")
+            print(f"  Slide Layouts: {len(master.slide_layouts)}")
+            for j, layout in enumerate(master.slide_layouts):
+                print(f"\n  Layout {j}: {layout.name}")
+                print("    Placeholders:")
+                for shape in layout.placeholders:
+                    print(f"      - {shape.name} (idx: {shape.placeholder_format.idx})")
+                print("    Theme:")
+                if hasattr(layout, 'theme'):
+                    print(f"      Font Theme: {layout.theme.font_scheme.name if layout.theme.font_scheme else 'None'}")
         print("\n")
 
     def get_relevant_image(self, query: str) -> Optional[str]:
@@ -334,6 +341,29 @@ class PPTGenerator:
         except Exception as e:
             raise Exception(f"Error generating content: {str(e)}")
 
+    def _copy_slide_layout(self, source_layout, target_prs):
+        """Copy a slide layout from template to new presentation"""
+        # Get the slide master
+        if len(target_prs.slide_masters) == 0:
+            target_prs.slide_masters.add_slide_master()
+        
+        target_master = target_prs.slide_masters[0]
+        
+        # Copy theme information if available
+        if hasattr(source_layout, 'theme'):
+            # Copy font scheme
+            if source_layout.theme.font_scheme:
+                if hasattr(target_master, 'theme') and target_master.theme:
+                    target_master.theme.font_scheme = source_layout.theme.font_scheme
+        
+        # Copy background if available
+        if hasattr(source_layout, 'background'):
+            for layout in target_master.slide_layouts:
+                if hasattr(layout, 'background'):
+                    layout.background = source_layout.background
+        
+        return target_master.slide_layouts[0]  # Return the first layout as fallback
+
     def create_presentation(self,
                         title: str,
                         presenter: str,
@@ -344,11 +374,32 @@ class PPTGenerator:
         # Load template
         template_path = self.get_template_path(template)
         try:
-            prs = Presentation(template_path)
+            template_prs = Presentation(template_path)
             # Debug: Print available layouts
-            self._debug_print_layouts(prs)
-            # Remove any existing slides while preserving the template
-            self._remove_all_slides(prs)
+            self._debug_print_layouts(template_prs)
+            
+            # Create new presentation
+            prs = Presentation()
+            
+            # Copy master slides and layouts from template
+            if len(template_prs.slide_masters) > 0:
+                template_master = template_prs.slide_masters[0]
+                if len(prs.slide_masters) == 0:
+                    prs.slide_masters.add_slide_master()
+                target_master = prs.slide_masters[0]
+                
+                # Copy theme information
+                if hasattr(template_master, 'theme') and template_master.theme:
+                    target_master.theme = template_master.theme
+                
+                # Copy background
+                if hasattr(template_master, 'background'):
+                    target_master.background = template_master.background
+                
+                # Copy layouts
+                for layout in template_master.slide_layouts:
+                    self._copy_slide_layout(layout, prs)
+            
         except Exception as e:
             print(f"Warning: Could not load template {template_path}. Using blank presentation. Error: {str(e)}")
             prs = Presentation()
