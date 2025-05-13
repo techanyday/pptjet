@@ -1,7 +1,9 @@
 import os
 import json
 import requests
-from flask import Blueprint, request, render_template, send_from_directory, jsonify, url_for, redirect, current_app
+from flask import Blueprint, render_template, request, redirect, url_for, flash, send_from_directory, current_app, session, jsonify
+import requests
+from functools import wraps
 from flask_login import login_required, login_user, logout_user, current_user
 from app.utils.ppt_generator import PPTGenerator
 from app.models import User
@@ -12,13 +14,120 @@ GOOGLE_DISCOVERY_URL = "https://accounts.google.com/.well-known/openid-configura
 
 bp = Blueprint("main", __name__)
 
-# Debug route for static files
-@bp.route('/debug/static/<path:filename>')
-def debug_static(filename):
-    return send_from_directory(current_app.static_folder, filename)
+# Pricing plans configuration
+PLANS = {
+    'creator': {
+        'name': 'Creator Plan',
+        'price': 299,  # in cents
+        'presentations': 20
+    },
+    'pro': {
+        'name': 'Pro Plan',
+        'price': 499,  # in cents
+        'presentations': 50
+    }
+}
+
+def check_subscription(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated:
+            return redirect(url_for('main.pricing'))
+        # Here you would check if the user has an active subscription
+        # and if they haven't exceeded their monthly limit
+        return f(*args, **kwargs)
+    return decorated_function
+
+# Template image routes
+@bp.route('/static/images/templates/<template>.jpg')
+def serve_template_image(template):
+    image_path = os.path.join('images', 'templates', f'{template}.jpg')
+    return send_from_directory(current_app.static_folder, image_path, mimetype='image/jpeg')
 
 # Get the absolute path to the generated directory
 GENERATED_FOLDER = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), 'generated'))
+
+@bp.route('/pricing')
+def pricing():
+    return render_template('pricing.html')
+
+@bp.route('/create-checkout-session', methods=['POST'])
+@login_required
+def create_checkout_session():
+    plan = request.form.get('plan')
+    if plan not in PLANS:
+        return jsonify({'error': 'Invalid plan'}), 400
+
+    plan_data = PLANS[plan]
+    
+    # Initialize Paystack transaction
+    url = 'https://api.paystack.co/transaction/initialize'
+    headers = {
+        'Authorization': f'Bearer {os.environ.get("PAYSTACK_SECRET_KEY")}',
+        'Content-Type': 'application/json'
+    }
+    data = {
+        'email': current_user.email,
+        'amount': plan_data['price'],  # amount in kobo (Nigerian currency)
+        'callback_url': url_for('main.payment_callback', _external=True),
+        'metadata': {
+            'plan_id': plan,
+            'user_id': current_user.id
+        }
+    }
+
+    try:
+        response = requests.post(url, headers=headers, json=data)
+        response.raise_for_status()
+        result = response.json()
+
+        if result['status']:
+            # Store the reference in session for verification
+            session['payment_reference'] = result['data']['reference']
+            return redirect(result['data']['authorization_url'])
+        else:
+            flash('Could not initialize payment. Please try again.', 'error')
+            return redirect(url_for('main.pricing'))
+
+    except Exception as e:
+        flash('An error occurred. Please try again.', 'error')
+        return redirect(url_for('main.pricing'))
+
+@bp.route('/payment/callback')
+@login_required
+def payment_callback():
+    reference = request.args.get('reference')
+    if not reference or reference != session.get('payment_reference'):
+        flash('Invalid payment reference', 'error')
+        return redirect(url_for('main.pricing'))
+
+    # Verify the transaction
+    url = f'https://api.paystack.co/transaction/verify/{reference}'
+    headers = {
+        'Authorization': f'Bearer {os.environ.get("PAYSTACK_SECRET_KEY")}'
+    }
+
+    try:
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        result = response.json()
+
+        if result['status'] and result['data']['status'] == 'success':
+            # Get the plan from metadata
+            metadata = result['data']['metadata']
+            plan_id = metadata['plan_id']
+
+            # Here you would update the user's subscription in your database
+            # For now, we'll just show a success message
+            flash(f'Successfully subscribed to {PLANS[plan_id]["name"]}!', 'success')
+            return redirect(url_for('main.generate'))
+        else:
+            flash('Payment verification failed', 'error')
+            return redirect(url_for('main.pricing'))
+
+    except Exception as e:
+        flash('Could not verify payment', 'error')
+        return redirect(url_for('main.pricing'))
 os.makedirs(GENERATED_FOLDER, exist_ok=True)
 
 def get_google_provider_cfg():

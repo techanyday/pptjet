@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold text-center mb-8">Choose Your Plan</h1>
+    <p class="text-center text-gray-600 mb-12">Both plans include full access to all templates and features.</p>
+
+    <div class="flex justify-center space-x-8">
+        <!-- Creator Plan -->
+        <div class="bg-white rounded-lg shadow-lg p-6 w-80">
+            <h2 class="text-2xl font-bold mb-4">Creator Plan</h2>
+            <div class="text-4xl font-bold mb-4">$2.99<span class="text-lg font-normal">/month</span></div>
+            <ul class="mb-8 space-y-3">
+                <li class="flex items-center">
+                    <svg class="h-5 w-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    20 Presentations/month
+                </li>
+                <li class="flex items-center">
+                    <svg class="h-5 w-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    All Templates
+                </li>
+                <li class="flex items-center">
+                    <svg class="h-5 w-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    Full Features
+                </li>
+            </ul>
+            <form action="{{ url_for('main.create_checkout_session') }}" method="POST">
+                <input type="hidden" name="plan" value="creator">
+                <button type="submit" class="w-full bg-blue-500 text-white rounded-lg px-4 py-2 hover:bg-blue-600 transition-colors">
+                    Subscribe Now
+                </button>
+            </form>
+        </div>
+
+        <!-- Pro Plan -->
+        <div class="bg-white rounded-lg shadow-lg p-6 w-80 border-2 border-blue-500">
+            <div class="absolute top-0 right-0 bg-blue-500 text-white px-2 py-1 text-sm rounded-bl">POPULAR</div>
+            <h2 class="text-2xl font-bold mb-4">Pro Plan</h2>
+            <div class="text-4xl font-bold mb-4">$4.99<span class="text-lg font-normal">/month</span></div>
+            <ul class="mb-8 space-y-3">
+                <li class="flex items-center">
+                    <svg class="h-5 w-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    50 Presentations/month
+                </li>
+                <li class="flex items-center">
+                    <svg class="h-5 w-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    All Templates
+                </li>
+                <li class="flex items-center">
+                    <svg class="h-5 w-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    Full Features
+                </li>
+            </ul>
+            <form action="{{ url_for('main.create_checkout_session') }}" method="POST">
+                <input type="hidden" name="plan" value="pro">
+                <button type="submit" class="w-full bg-blue-500 text-white rounded-lg px-4 py-2 hover:bg-blue-600 transition-colors">
+                    Subscribe Now
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <p class="text-center text-gray-600 mt-8">The only difference is the volume of presentations per month.</p>
+</div>
+{% endblock %}
