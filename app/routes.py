@@ -373,15 +373,25 @@ def generate():
                 next_tier = PLANS['creator']
             elif current_user.plan == 'creator':
                 next_tier = PLANS['pro']
-            
-            return jsonify({
-                "status": "limit_reached",
+
+            response = {
+                "error": "limit_reached",
                 "message": "You've reached your monthly limit of {} presentations.".format(plan['presentations']),
-                "current_plan": plan['name'],
-                "next_tier": next_tier,
-                "presentations_used": presentations_used,
-                "presentations_limit": plan['presentations']
-            }), 200
+                "current_plan": {
+                    "name": plan['name'],
+                    "limit": plan['presentations'],
+                    "used": presentations_used
+                }
+            }
+            
+            if next_tier:
+                response["upgrade"] = {
+                    "plan": next_tier['name'],
+                    "limit": next_tier['presentations'],
+                    "price": next_tier['price']
+                }
+            
+            return response, 400  # Use 400 to prevent default browser handling
 
         # Extract and validate required fields
         prompt = data.get("prompt")

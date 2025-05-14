@@ -1,61 +1,69 @@
 {% extends "base.html" %}
 
 {% block content %}
-<!-- Error Modal -->
-<div id="errorModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center z-50">
-    <div class="bg-white p-8 rounded-lg shadow-xl max-w-md w-full mx-4">
-        <h3 class="text-xl font-semibold text-gray-900 mb-4">Oops!</h3>
-        <p id="errorMessage" class="text-gray-600 mb-6"></p>
-        <div class="text-right">
-            <button onclick="closeErrorModal()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                OK
-            </button>
-        </div>
-    </div>
-</div>
-
 <!-- Upgrade Modal -->
 <div id="upgradeModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center z-50">
     <div class="bg-white p-8 rounded-lg shadow-xl max-w-lg w-full mx-4">
-        <div class="flex justify-between items-start mb-4">
-            <h3 class="text-2xl font-bold text-gray-900">Time to Upgrade! 🚀</h3>
+        <div class="flex justify-between items-start">
+            <div>
+                <h3 class="text-2xl font-bold text-gray-900">Limit Reached</h3>
+                <p class="text-gray-600 mt-1" id="limitMessage"></p>
+            </div>
             <button onclick="closeUpgradeModal()" class="text-gray-400 hover:text-gray-500">
                 <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                 </svg>
             </button>
         </div>
-        <div class="space-y-4">
-            <div class="bg-blue-50 p-4 rounded-lg">
-                <p id="upgradeCurrentPlan" class="text-sm text-blue-700">Current Plan: <span class="font-semibold">Free Plan</span></p>
-                <p id="upgradePresentationsUsed" class="text-sm text-blue-700 mt-1">You've used: <span class="font-semibold">3/3 presentations</span></p>
+        
+        <!-- Current Plan Status -->
+        <div class="mt-6 bg-blue-50 p-4 rounded-lg">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="font-medium text-blue-900" id="currentPlanName">Free Plan</p>
+                    <p class="text-sm text-blue-700 mt-1" id="usageStats"></p>
+                </div>
+                <div class="text-3xl font-bold text-blue-700" id="usageIndicator"></div>
             </div>
-            <div id="upgradeNextTier" class="border border-blue-200 rounded-lg p-4">
-                <h4 class="text-lg font-semibold text-gray-900 mb-2">Recommended Upgrade</h4>
-                <p class="text-gray-600">Upgrade to <span class="nextTierName font-semibold">Creator Plan</span> to get:</p>
-                <ul class="mt-2 space-y-2">
-                    <li class="flex items-center text-gray-600">
-                        <svg class="h-5 w-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                        </svg>
-                        <span class="nextTierPresentations">20 presentations</span> per month
-                    </li>
-                    <li class="flex items-center text-gray-600">
-                        <svg class="h-5 w-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                        </svg>
-                        Priority support
-                    </li>
-                </ul>
+        </div>
+
+        <!-- Upgrade Option -->
+        <div id="upgradeOption" class="mt-6 border border-blue-200 rounded-lg p-6">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h4 class="text-lg font-semibold text-gray-900" id="upgradePlanName">Creator Plan</h4>
+                    <p class="text-gray-600 mt-1" id="upgradePlanPrice"></p>
+                </div>
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">Recommended</span>
             </div>
-            <div class="mt-6 text-center">
-                <a href="/pricing" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                    Upgrade Now
-                    <svg class="ml-2 -mr-1 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+            
+            <ul class="mt-4 space-y-3">
+                <li class="flex items-start">
+                    <svg class="h-5 w-5 text-green-500 mt-1 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                     </svg>
-                </a>
-            </div>
+                    <span id="presentationLimit" class="text-gray-600"></span>
+                </li>
+                <li class="flex items-start">
+                    <svg class="h-5 w-5 text-green-500 mt-1 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    <span class="text-gray-600">Priority Support</span>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="mt-8 flex justify-end space-x-4">
+            <button onclick="closeUpgradeModal()" class="px-4 py-2 text-gray-700 hover:text-gray-900">
+                Maybe Later
+            </button>
+            <a href="/pricing" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                Upgrade Now
+                <svg class="ml-2 -mr-1 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                </svg>
+            </a>
         </div>
     </div>
 </div>
@@ -115,41 +123,42 @@
 </div>
 
 <script>
-function showError(message) {
-    document.getElementById('errorMessage').textContent = message;
-    document.getElementById('errorModal').classList.remove('hidden');
-    document.getElementById('errorModal').classList.add('flex');
-}
+function showUpgradeModal(data) {
+    const modal = document.getElementById('upgradeModal');
+    const currentPlan = data.current_plan;
+    const upgrade = data.upgrade;
 
-function closeErrorModal() {
-    document.getElementById('errorModal').classList.add('hidden');
-    document.getElementById('errorModal').classList.remove('flex');
-}
+    // Set limit message
+    document.getElementById('limitMessage').textContent = data.message;
 
-function showUpgradeModal(currentPlan, presentationsUsed, totalPresentations, nextTier) {
     // Update current plan info
-    document.getElementById('upgradeCurrentPlan').innerHTML = 
-        `Current Plan: <span class="font-semibold">${currentPlan}</span>`;
-    document.getElementById('upgradePresentationsUsed').innerHTML = 
-        `You've used: <span class="font-semibold">${presentationsUsed}/${totalPresentations} presentations</span>`;
-    
-    // Update next tier info if available
-    const nextTierSection = document.getElementById('upgradeNextTier');
-    if (nextTier) {
-        document.querySelectorAll('.nextTierName').forEach(el => el.textContent = nextTier.name);
-        document.querySelectorAll('.nextTierPresentations').forEach(el => el.textContent = nextTier.presentations);
-        nextTierSection.classList.remove('hidden');
+    document.getElementById('currentPlanName').textContent = currentPlan.name;
+    document.getElementById('usageStats').textContent = 
+        `${currentPlan.used} of ${currentPlan.limit} presentations used this month`;
+    document.getElementById('usageIndicator').textContent = 
+        `${currentPlan.used}/${currentPlan.limit}`;
+
+    // Update upgrade option if available
+    if (upgrade) {
+        document.getElementById('upgradePlanName').textContent = upgrade.plan;
+        document.getElementById('upgradePlanPrice').textContent = 
+            `$${(upgrade.price / 100).toFixed(2)} per month`;
+        document.getElementById('presentationLimit').textContent = 
+            `${upgrade.limit} presentations per month`;
+        document.getElementById('upgradeOption').classList.remove('hidden');
     } else {
-        nextTierSection.classList.add('hidden');
+        document.getElementById('upgradeOption').classList.add('hidden');
     }
-    
-    document.getElementById('upgradeModal').classList.remove('hidden');
-    document.getElementById('upgradeModal').classList.add('flex');
+
+    // Show modal
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
 }
 
 function closeUpgradeModal() {
-    document.getElementById('upgradeModal').classList.add('hidden');
-    document.getElementById('upgradeModal').classList.remove('flex');
+    const modal = document.getElementById('upgradeModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -212,18 +221,24 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const data = await response.json();
             
-            if (data.status === 'limit_reached') {
-                showUpgradeModal(
-                    data.current_plan,
-                    data.presentations_used,
-                    data.presentations_limit,
-                    data.next_tier
-                );
-            } else if (data.file_url) {
-                window.location.href = data.file_url;
-            } else {
-                showError(data.error || 'Sorry! We encountered an issue while creating your presentation. Please try again.');
+            // Check if response is JSON
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                if (data.error === 'limit_reached') {
+                    showUpgradeModal(data);
+                    return;
+                }
+                
+                if (data.file_url) {
+                    window.location.href = data.file_url;
+                    return;
+                }
+
+                throw new Error(data.message || 'An unexpected error occurred');
             }
+
+            // If not JSON, assume it's a file download
+            window.location.href = response.url;
             }
         } catch (error) {
             showError('Sorry! We encountered an issue while creating your presentation. Please try again.');
