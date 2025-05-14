@@ -233,7 +233,9 @@ def callback():
             "id": unique_id,
             "name": users_name,
             "email": users_email,
-            "profile_pic": picture
+            "profile_pic": picture,
+            "plan": "free",
+            "presentations": []
         }
         users_db[unique_id] = user_data
         user = User(
@@ -258,20 +260,12 @@ def logout():
     return redirect(url_for('main.login'))
 
 
-def get_user_plan(user_id):
-    # Get user data from the database
-    user_data = users_db.get(user_id, {})
-    
-    # Get the user's plan, default to 'free'
-    plan = user_data.get('plan', 'free')
-    return PLANS[plan]
+def get_user_plan(user):
+    # Get the user's plan from the User object
+    return PLANS[user.plan]
 
-def get_presentations_this_month(user_id):
+def get_presentations_this_month(user):
     from datetime import datetime
-    
-    # Get user data
-    user_data = users_db.get(user_id, {})
-    presentations = user_data.get('presentations', [])
     
     # Get current month and year
     now = datetime.now()
@@ -279,33 +273,30 @@ def get_presentations_this_month(user_id):
     current_year = now.year
     
     # Count presentations for current month
-    count = sum(1 for p in presentations 
+    count = sum(1 for p in user.presentations 
                if datetime.fromtimestamp(p).month == current_month 
                and datetime.fromtimestamp(p).year == current_year)
     
     return count
 
-def add_presentation_record(user_id):
+def add_presentation_record(user):
     from datetime import datetime
     
-    # Get user data
-    user_data = users_db.get(user_id, {})
-    
     # Add current timestamp to presentations list
-    presentations = user_data.get('presentations', [])
-    presentations.append(datetime.now().timestamp())
+    user.presentations.append(datetime.now().timestamp())
     
-    # Update user data
-    user_data['presentations'] = presentations
-    users_db[user_id] = user_data
+    # Update user data in database
+    users_db[user.id].update({
+        'presentations': user.presentations
+    })
 
 @bp.route("/generate", methods=["GET", "POST"])
 @login_required
 def generate():
     if request.method == "GET":
         # Get user's plan and usage
-        plan = get_user_plan(current_user.id)
-        presentations_used = get_presentations_this_month(current_user.id)
+        plan = get_user_plan(current_user)
+        presentations_used = get_presentations_this_month(current_user)
         presentations_left = plan['presentations'] - presentations_used
         
         return render_template('generate.html', 
@@ -319,8 +310,8 @@ def generate():
             return jsonify({"error": "No JSON data received"}), 400
             
         # Check presentation limit
-        plan = get_user_plan(current_user.id)
-        presentations_used = get_presentations_this_month(current_user.id)
+        plan = get_user_plan(current_user)
+        presentations_used = get_presentations_this_month(current_user)
         
         if presentations_used >= plan['presentations']:
             return jsonify({
@@ -362,7 +353,7 @@ def generate():
             filename = os.path.basename(filepath)
             
             # Record this presentation
-            add_presentation_record(current_user.id)
+            add_presentation_record(current_user)
             
             return jsonify({
                 'success': True,
