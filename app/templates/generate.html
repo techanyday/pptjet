@@ -3,7 +3,15 @@
 {% block content %}
 <div class="max-w-4xl mx-auto">
     <div class="bg-white shadow-xl rounded-lg p-6">
-        <h1 class="text-3xl font-bold text-center mb-8">AI PowerPoint Generator</h1>
+        <div class="flex justify-between items-center mb-8">
+            <h1 class="text-3xl font-bold">AI PowerPoint Generator</h1>
+            <div class="text-right">
+                <p class="text-sm text-gray-600">{{ plan_name }}</p>
+                <p class="text-sm {% if presentations_left <= 1 %}text-red-600{% else %}text-gray-600{% endif %}">
+                    {{ presentations_left }} presentation{% if presentations_left != 1 %}s{% endif %} remaining this month
+                </p>
+            </div>
+        </div>
         <form id="presentationForm" class="space-y-6">
             <div>
                 <label for="num_slides" class="block text-sm font-medium text-gray-700 mb-2">Number of Slides</label>
@@ -92,7 +100,13 @@ document.addEventListener('DOMContentLoaded', function() {
             if (response.ok) {
                 window.location.href = data.file_url;
             } else {
-                alert(data.error || 'An error occurred while generating the presentation');
+                if (data.code === 'LIMIT_REACHED') {
+                    // Redirect to pricing page
+                    alert('You have reached your monthly presentation limit. Redirecting to pricing page...');
+                    window.location.href = '/pricing';
+                } else {
+                    alert(data.error || 'An error occurred while generating the presentation');
+                }
             }
         } catch (error) {
             alert('An error occurred while generating the presentation');

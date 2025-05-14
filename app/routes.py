@@ -258,16 +258,75 @@ def logout():
     return redirect(url_for('main.login'))
 
 
+def get_user_plan(user_id):
+    # Get user data from the database
+    user_data = users_db.get(user_id, {})
+    
+    # Get the user's plan, default to 'free'
+    plan = user_data.get('plan', 'free')
+    return PLANS[plan]
+
+def get_presentations_this_month(user_id):
+    from datetime import datetime
+    
+    # Get user data
+    user_data = users_db.get(user_id, {})
+    presentations = user_data.get('presentations', [])
+    
+    # Get current month and year
+    now = datetime.now()
+    current_month = now.month
+    current_year = now.year
+    
+    # Count presentations for current month
+    count = sum(1 for p in presentations 
+               if datetime.fromtimestamp(p).month == current_month 
+               and datetime.fromtimestamp(p).year == current_year)
+    
+    return count
+
+def add_presentation_record(user_id):
+    from datetime import datetime
+    
+    # Get user data
+    user_data = users_db.get(user_id, {})
+    
+    # Add current timestamp to presentations list
+    presentations = user_data.get('presentations', [])
+    presentations.append(datetime.now().timestamp())
+    
+    # Update user data
+    user_data['presentations'] = presentations
+    users_db[user_id] = user_data
+
 @bp.route("/generate", methods=["GET", "POST"])
 @login_required
 def generate():
     if request.method == "GET":
-        return render_template('generate.html', user=current_user)
+        # Get user's plan and usage
+        plan = get_user_plan(current_user.id)
+        presentations_used = get_presentations_this_month(current_user.id)
+        presentations_left = plan['presentations'] - presentations_used
+        
+        return render_template('generate.html', 
+                             user=current_user,
+                             presentations_left=presentations_left,
+                             plan_name=plan['name'])
 
     try:
         data = request.get_json()
         if not data:
             return jsonify({"error": "No JSON data received"}), 400
+            
+        # Check presentation limit
+        plan = get_user_plan(current_user.id)
+        presentations_used = get_presentations_this_month(current_user.id)
+        
+        if presentations_used >= plan['presentations']:
+            return jsonify({
+                "error": "You have reached your monthly presentation limit. Please upgrade your plan to continue.",
+                "code": "LIMIT_REACHED"
+            }), 403
 
         # Extract and validate required fields
         title = data.get("title")
@@ -298,6 +357,9 @@ def generate():
             
             # Get filename from path
             filename = os.path.basename(filepath)
+            
+            # Record this presentation
+            add_presentation_record(current_user.id)
             
             return jsonify({
                 'success': True,
