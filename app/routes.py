@@ -242,25 +242,31 @@ def callback():
         users_name = userinfo_response.json()["given_name"]
         picture = userinfo_response.json()["picture"]
 
-        # Create a user in our db with the information provided by Google
-        user_data = {
-            "id": unique_id,
-            "name": users_name,
-            "email": users_email,
-            "profile_pic": picture,
-            "plan": "free",
-            "presentations": []
-        }
+        # Load existing users
         users = load_users()
+        
+        # Check if user exists
         if unique_id in users:
-            del users[unique_id]
-        users[unique_id] = user_data
-        save_users(users)
+            user_data = users[unique_id]
+        else:
+            # Create new user data
+            user_data = {
+                "id": unique_id,
+                "name": users_name,
+                "email": users_email,
+                "profile_pic": picture,
+                "plan": "free",
+                "presentations": []
+            }
+            users[unique_id] = user_data
+            save_users(users)
         user = User(
             id_=unique_id,
             name=users_name,
             email=users_email,
-            profile_pic=picture
+            profile_pic=picture,
+            plan=user_data['plan'],
+            presentations=user_data['presentations']
         )
 
         # Begin user session by logging the user in
@@ -276,10 +282,6 @@ def callback():
 def logout():
     user_id = current_user.id
     logout_user()
-    users = load_users()
-    if user_id in users:
-        del users[user_id]
-        save_users(users)
     return redirect(url_for('main.login'))
 
 
