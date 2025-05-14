@@ -344,14 +344,17 @@ def generate():
         ppt_generator = PPTGenerator()
         
         try:
-            # Generate slide content
-            slides_content = ppt_generator.generate_slide_content(prompt, num_slides)
+            # Generate slide content with suggested title
+            result = ppt_generator.generate_slide_content(prompt, num_slides)
+            
+            # Use the suggested title instead of the raw prompt
+            presentation_title = result['suggested_title']
             
             # Create presentation
             filepath = ppt_generator.create_presentation(
-                title=title,
+                title=presentation_title,
                 presenter=presenter,
-                slides_content=slides_content,
+                slides_content=result['slides'],
                 template=template_style
             )
             

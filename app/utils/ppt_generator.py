@@ -182,11 +182,21 @@ class PPTGenerator:
                 p.space_after = Pt(12)
                 p.line_spacing = 1.2
 
-
-
-    def generate_slide_content(self, prompt: str, num_slides: int) -> List[Dict]:
+    def generate_slide_content(self, prompt: str, num_slides: int):
         """Generate slide content using GPT-3.5"""
         try:
+            # First, generate a relevant title
+            title_response = self.client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": "You are a presentation title generator. Generate concise, professional titles."},
+                    {"role": "user", "content": f"Generate a short, relevant title (max 5 words) for a presentation about: {prompt}. Return ONLY the title, nothing else."}
+                ]
+            )
+            
+            suggested_title = title_response.choices[0].message.content.strip().strip('"')
+            
+            # Then generate the slide content
             messages = [
                 {
                     "role": "system",
@@ -208,9 +218,7 @@ class PPTGenerator:
             
             response = self.client.chat.completions.create(
                 model="gpt-3.5-turbo",
-                messages=messages,
-                temperature=0.7,
-                max_tokens=2000
+                messages=messages
             )
         
             # Extract and parse the response
@@ -260,7 +268,10 @@ class PPTGenerator:
             if len(slides) < num_slides:
                 raise ValueError(f"Could not generate enough unique slides. Got {len(slides)}, needed {num_slides}")
                 
-            return slides
+            return {
+                'suggested_title': suggested_title,
+                'slides': slides
+            }
         except json.JSONDecodeError as e:
             raise Exception(f"Error parsing GPT response: {str(e)}")
         except ValueError as e:
