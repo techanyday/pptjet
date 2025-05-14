@@ -16,6 +16,11 @@ bp = Blueprint("main", __name__)
 
 # Pricing plans configuration
 PLANS = {
+    'free': {
+        'name': 'Free Plan',
+        'price': 0,  # in cents
+        'presentations': 3
+    },
     'creator': {
         'name': 'Creator Plan',
         'price': 299,  # in cents
