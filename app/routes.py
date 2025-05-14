@@ -38,8 +38,15 @@ def check_subscription(f):
     def decorated_function(*args, **kwargs):
         if not current_user.is_authenticated:
             return redirect(url_for('main.pricing'))
-        # Here you would check if the user has an active subscription
-        # and if they haven't exceeded their monthly limit
+            
+        # Check if user has exceeded their monthly limit
+        plan = get_user_plan(current_user)
+        presentations_used = get_presentations_this_month(current_user)
+        
+        if presentations_used >= plan['presentations']:
+            flash('You have reached your monthly presentation limit. Please upgrade your plan to continue.', 'error')
+            return redirect(url_for('main.pricing'))
+            
         return f(*args, **kwargs)
     return decorated_function
 
@@ -121,11 +128,18 @@ def payment_callback():
             # Get the plan from metadata
             metadata = result['data']['metadata']
             plan_id = metadata['plan_id']
-
-            # Here you would update the user's subscription in your database
-            # For now, we'll just show a success message
-            flash(f'Successfully subscribed to {PLANS[plan_id]["name"]}!', 'success')
-            return redirect(url_for('main.generate'))
+            
+            # Update user's plan in the database
+            users = load_users()
+            if current_user.id in users:
+                users[current_user.id]['plan'] = plan_id
+                save_users(users)
+                
+                # Update current user object
+                current_user.plan = plan_id
+                
+                flash(f'Successfully subscribed to {PLANS[plan_id]["name"]}!', 'success')
+                return redirect(url_for('main.generate'))
         else:
             flash('Payment verification failed', 'error')
             return redirect(url_for('main.pricing'))
@@ -302,6 +316,7 @@ def add_presentation_record(user):
 
 @bp.route("/generate", methods=["GET", "POST"])
 @login_required
+@check_subscription
 def generate():
     if request.method == "GET":
         # Get user's plan and usage
