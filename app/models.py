@@ -1,4 +1,22 @@
 from flask_login import UserMixin
+import json
+import os
+
+# Path to users data file
+USERS_FILE = os.path.join(os.path.dirname(__file__), 'data', 'users.json')
+
+def load_users():
+    """Load users from JSON file"""
+    if os.path.exists(USERS_FILE):
+        with open(USERS_FILE, 'r') as f:
+            return json.load(f)
+    return {}
+
+def save_users(users):
+    """Save users to JSON file"""
+    os.makedirs(os.path.dirname(USERS_FILE), exist_ok=True)
+    with open(USERS_FILE, 'w') as f:
+        json.dump(users, f, indent=2)
 
 class User(UserMixin):
     def __init__(self, id_, name, email, profile_pic, plan='free', presentations=None):
@@ -11,12 +29,11 @@ class User(UserMixin):
 
     @staticmethod
     def get(user_id):
-        # In a real application, you would fetch this from your database
-        # For now, we'll use a simple in-memory storage
-        from app import users_db
-        if not user_id or user_id not in users_db:
+        # Load users from JSON file
+        users = load_users()
+        if not user_id or user_id not in users:
             return None
-        user = users_db[user_id]
+        user = users[user_id]
         return User(
             id_=user["id"],
             name=user["name"],

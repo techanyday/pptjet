@@ -5,7 +5,6 @@ from flask_login import LoginManager
 from oauthlib.oauth2 import WebApplicationClient
 
 # In-memory storage for users (replace with database in production)
-users_db = {}
 
 def create_app():
     # Create Flask app

@@ -6,8 +6,8 @@ import requests
 from functools import wraps
 from flask_login import login_required, login_user, logout_user, current_user
 from app.utils.ppt_generator import PPTGenerator
-from app.models import User
-from app import users_db
+from app.models import User, load_users, save_users
+
 
 # Google OAuth 2.0 endpoints
 GOOGLE_DISCOVERY_URL = "https://accounts.google.com/.well-known/openid-configuration"
@@ -237,7 +237,11 @@ def callback():
             "plan": "free",
             "presentations": []
         }
-        users_db[unique_id] = user_data
+        users = load_users()
+        if unique_id in users:
+            del users[unique_id]
+        users[unique_id] = user_data
+        save_users(users)
         user = User(
             id_=unique_id,
             name=users_name,
@@ -256,7 +260,12 @@ def callback():
 @bp.route("/logout")
 @login_required
 def logout():
+    user_id = current_user.id
     logout_user()
+    users = load_users()
+    if user_id in users:
+        del users[user_id]
+        save_users(users)
     return redirect(url_for('main.login'))
 
 
@@ -284,11 +293,12 @@ def add_presentation_record(user):
     
     # Add current timestamp to presentations list
     user.presentations.append(datetime.now().timestamp())
-    
     # Update user data in database
-    users_db[user.id].update({
+    users = load_users()
+    users[user.id].update({
         'presentations': user.presentations
     })
+    save_users(users)
 
 @bp.route("/generate", methods=["GET", "POST"])
 @login_required
