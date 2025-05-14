@@ -368,9 +368,18 @@ def generate():
         presentations_used = get_presentations_this_month(current_user)
         
         if presentations_used >= plan['presentations']:
+            next_tier = None
+            if current_user.plan == 'free':
+                next_tier = PLANS['creator']
+            elif current_user.plan == 'creator':
+                next_tier = PLANS['pro']
+            
             return jsonify({
-                "error": "You have reached your monthly presentation limit. Please upgrade your plan to continue.",
-                "code": "LIMIT_REACHED"
+                "error": "You've reached your monthly limit of {} presentations.".format(plan['presentations']),
+                "code": "LIMIT_REACHED",
+                "current_plan": plan['name'],
+                "next_tier": next_tier,
+                "presentations_used": presentations_used
             }), 403
 
         # Extract and validate required fields

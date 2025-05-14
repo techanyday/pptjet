@@ -14,6 +14,52 @@
     </div>
 </div>
 
+<!-- Upgrade Modal -->
+<div id="upgradeModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white p-8 rounded-lg shadow-xl max-w-lg w-full mx-4">
+        <div class="flex justify-between items-start mb-4">
+            <h3 class="text-2xl font-bold text-gray-900">Time to Upgrade! 🚀</h3>
+            <button onclick="closeUpgradeModal()" class="text-gray-400 hover:text-gray-500">
+                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+        <div class="space-y-4">
+            <div class="bg-blue-50 p-4 rounded-lg">
+                <p id="upgradeCurrentPlan" class="text-sm text-blue-700">Current Plan: <span class="font-semibold">Free Plan</span></p>
+                <p id="upgradePresentationsUsed" class="text-sm text-blue-700 mt-1">You've used: <span class="font-semibold">3/3 presentations</span></p>
+            </div>
+            <div id="upgradeNextTier" class="border border-blue-200 rounded-lg p-4">
+                <h4 class="text-lg font-semibold text-gray-900 mb-2">Recommended Upgrade</h4>
+                <p class="text-gray-600">Upgrade to <span class="nextTierName font-semibold">Creator Plan</span> to get:</p>
+                <ul class="mt-2 space-y-2">
+                    <li class="flex items-center text-gray-600">
+                        <svg class="h-5 w-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        <span class="nextTierPresentations">20 presentations</span> per month
+                    </li>
+                    <li class="flex items-center text-gray-600">
+                        <svg class="h-5 w-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        Priority support
+                    </li>
+                </ul>
+            </div>
+            <div class="mt-6 text-center">
+                <a href="/pricing" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Upgrade Now
+                    <svg class="ml-2 -mr-1 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                    </svg>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="max-w-4xl mx-auto">
     <div class="bg-white shadow-xl rounded-lg p-6">
         <div class="flex justify-between items-center mb-8">
@@ -80,6 +126,32 @@ function closeErrorModal() {
     document.getElementById('errorModal').classList.remove('flex');
 }
 
+function showUpgradeModal(currentPlan, presentationsUsed, totalPresentations, nextTier) {
+    // Update current plan info
+    document.getElementById('upgradeCurrentPlan').innerHTML = 
+        `Current Plan: <span class="font-semibold">${currentPlan}</span>`;
+    document.getElementById('upgradePresentationsUsed').innerHTML = 
+        `You've used: <span class="font-semibold">${presentationsUsed}/${totalPresentations} presentations</span>`;
+    
+    // Update next tier info if available
+    const nextTierSection = document.getElementById('upgradeNextTier');
+    if (nextTier) {
+        document.querySelectorAll('.nextTierName').forEach(el => el.textContent = nextTier.name);
+        document.querySelectorAll('.nextTierPresentations').forEach(el => el.textContent = nextTier.presentations);
+        nextTierSection.classList.remove('hidden');
+    } else {
+        nextTierSection.classList.add('hidden');
+    }
+    
+    document.getElementById('upgradeModal').classList.remove('hidden');
+    document.getElementById('upgradeModal').classList.add('flex');
+}
+
+function closeUpgradeModal() {
+    document.getElementById('upgradeModal').classList.add('hidden');
+    document.getElementById('upgradeModal').classList.remove('flex');
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // Template selection
     const templateOptions = document.querySelectorAll('.template-option');
@@ -125,9 +197,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 window.location.href = data.file_url;
             } else {
                 if (data.code === 'LIMIT_REACHED') {
-                    // Redirect to pricing page
-                    showError('You have reached your monthly presentation limit. Redirecting to pricing page...');
-                    window.location.href = '/pricing';
+                    // Show upgrade modal instead of redirecting
+                    showUpgradeModal(
+                        data.current_plan,
+                        data.presentations_used,
+                        data.presentations_used, // total = used since we hit the limit
+                        data.next_tier
+                    );
                 } else {
                     showError(data.error || 'Sorry! We encountered an issue while creating your presentation. Please try again.');
                 }
