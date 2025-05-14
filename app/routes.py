@@ -329,12 +329,12 @@ def generate():
             }), 403
 
         # Extract and validate required fields
-        title = data.get("title")
-        presenter = data.get("presenter")
         prompt = data.get("prompt")
-        
-        if not all([title, presenter, prompt]):
-            return jsonify({"error": "Missing required fields: title, presenter, or prompt"}), 400
+        if not prompt:
+            return jsonify({"error": "Please provide a topic for the presentation"}), 400
+            
+        # Get presenter from current user
+        presenter = current_user.name
 
         # Extract optional fields with defaults
         num_slides = int(data.get("num_slides", 5))
