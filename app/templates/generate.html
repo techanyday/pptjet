@@ -1,6 +1,19 @@
 {% extends "base.html" %}
 
 {% block content %}
+<!-- Error Modal -->
+<div id="errorModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white p-8 rounded-lg shadow-xl max-w-md w-full mx-4">
+        <h3 class="text-xl font-semibold text-gray-900 mb-4">Oops!</h3>
+        <p id="errorMessage" class="text-gray-600 mb-6"></p>
+        <div class="text-right">
+            <button onclick="closeErrorModal()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                OK
+            </button>
+        </div>
+    </div>
+</div>
+
 <div class="max-w-4xl mx-auto">
     <div class="bg-white shadow-xl rounded-lg p-6">
         <div class="flex justify-between items-center mb-8">
@@ -56,6 +69,17 @@
 </div>
 
 <script>
+function showError(message) {
+    document.getElementById('errorMessage').textContent = message;
+    document.getElementById('errorModal').classList.remove('hidden');
+    document.getElementById('errorModal').classList.add('flex');
+}
+
+function closeErrorModal() {
+    document.getElementById('errorModal').classList.add('hidden');
+    document.getElementById('errorModal').classList.remove('flex');
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // Template selection
     const templateOptions = document.querySelectorAll('.template-option');
@@ -102,14 +126,14 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 if (data.code === 'LIMIT_REACHED') {
                     // Redirect to pricing page
-                    alert('You have reached your monthly presentation limit. Redirecting to pricing page...');
+                    showError('You have reached your monthly presentation limit. Redirecting to pricing page...');
                     window.location.href = '/pricing';
                 } else {
-                    alert(data.error || 'An error occurred while generating the presentation');
+                    showError(data.error || 'Sorry! We encountered an issue while creating your presentation. Please try again.');
                 }
             }
         } catch (error) {
-            alert('An error occurred while generating the presentation');
+            showError('Sorry! We encountered an issue while creating your presentation. Please try again.');
         } finally {
             submitButton.disabled = false;
             submitButton.innerHTML = 'Generate Presentation';
