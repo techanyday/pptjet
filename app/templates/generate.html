@@ -170,6 +170,25 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Form submission
     document.getElementById('presentationForm').addEventListener('submit', async function(e) {
+        // Get current presentations count from the page
+        const presentationsText = document.querySelector('.text-sm.text-gray-600, .text-sm.text-red-600').textContent;
+        const presentationsLeft = parseInt(presentationsText.match(/\d+/)[0]);
+        
+        if (presentationsLeft <= 0) {
+            e.preventDefault();
+            const currentPlan = document.querySelector('.text-sm.text-gray-600').textContent.trim();
+            // Show upgrade modal immediately without making API call
+            showUpgradeModal(
+                currentPlan,
+                3, // Since we know it's the free plan limit
+                3,
+                {
+                    name: 'Creator Plan',
+                    presentations: 20
+                }
+            );
+            return;
+        }
         e.preventDefault();
         
         const submitButton = this.querySelector('button[type="submit"]');
