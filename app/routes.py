@@ -39,6 +39,15 @@ def check_subscription(f):
         if not current_user.is_authenticated:
             return redirect(url_for('main.pricing'))
             
+        # Load latest user data to ensure we have current plan
+        users = load_users()
+        if current_user.id not in users:
+            flash('User data not found. Please try logging in again.', 'error')
+            return redirect(url_for('main.login'))
+            
+        # Update current user's plan from storage
+        current_user.plan = users[current_user.id]['plan']
+        
         # Check if user has exceeded their monthly limit
         plan = get_user_plan(current_user)
         presentations_used = get_presentations_this_month(current_user)
@@ -132,14 +141,21 @@ def payment_callback():
             # Update user's plan in the database
             users = load_users()
             if current_user.id in users:
+                # Update stored user data
                 users[current_user.id]['plan'] = plan_id
                 save_users(users)
                 
-                # Update current user object
+                # Update current user object with new plan
                 current_user.plan = plan_id
+                
+                # Clear the payment reference from session
+                session.pop('payment_reference', None)
                 
                 flash(f'Successfully subscribed to {PLANS[plan_id]["name"]}!', 'success')
                 return redirect(url_for('main.generate'))
+            else:
+                flash('User data not found', 'error')
+                return redirect(url_for('main.pricing'))
         else:
             flash('Payment verification failed', 'error')
             return redirect(url_for('main.pricing'))
@@ -336,6 +352,17 @@ def generate():
         if not data:
             return jsonify({"error": "No JSON data received"}), 400
             
+        # Load latest user data to ensure we have current plan
+        users = load_users()
+        if current_user.id not in users:
+            return jsonify({
+                "error": "User data not found. Please try logging in again.",
+                "code": "USER_NOT_FOUND"
+            }), 404
+            
+        # Update current user's plan from storage
+        current_user.plan = users[current_user.id]['plan']
+        
         # Check presentation limit
         plan = get_user_plan(current_user)
         presentations_used = get_presentations_this_month(current_user)
