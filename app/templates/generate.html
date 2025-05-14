@@ -2,70 +2,22 @@
 
 {% block content %}
 <!-- Upgrade Modal -->
-<div id="upgradeModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center z-50">
-    <div class="bg-white p-8 rounded-lg shadow-xl max-w-lg w-full mx-4">
-        <div class="flex justify-between items-start">
-            <div>
-                <h3 class="text-2xl font-bold text-gray-900">Limit Reached</h3>
-                <p class="text-gray-600 mt-1" id="limitMessage"></p>
-            </div>
-            <button onclick="closeUpgradeModal()" class="text-gray-400 hover:text-gray-500">
-                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
-            </button>
-        </div>
-        
-        <!-- Current Plan Status -->
-        <div class="mt-6 bg-blue-50 p-4 rounded-lg">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="font-medium text-blue-900" id="currentPlanName">Free Plan</p>
-                    <p class="text-sm text-blue-700 mt-1" id="usageStats"></p>
-                </div>
-                <div class="text-3xl font-bold text-blue-700" id="usageIndicator"></div>
-            </div>
-        </div>
-
-        <!-- Upgrade Option -->
-        <div id="upgradeOption" class="mt-6 border border-blue-200 rounded-lg p-6">
-            <div class="flex justify-between items-start">
-                <div>
-                    <h4 class="text-lg font-semibold text-gray-900" id="upgradePlanName">Creator Plan</h4>
-                    <p class="text-gray-600 mt-1" id="upgradePlanPrice"></p>
-                </div>
-                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">Recommended</span>
-            </div>
-            
-            <ul class="mt-4 space-y-3">
-                <li class="flex items-start">
-                    <svg class="h-5 w-5 text-green-500 mt-1 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                    </svg>
-                    <span id="presentationLimit" class="text-gray-600"></span>
-                </li>
-                <li class="flex items-start">
-                    <svg class="h-5 w-5 text-green-500 mt-1 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                    </svg>
-                    <span class="text-gray-600">Priority Support</span>
-                </li>
-            </ul>
-        </div>
-
-        <!-- Action Buttons -->
-        <div class="mt-8 flex justify-end space-x-4">
-            <button onclick="closeUpgradeModal()" class="px-4 py-2 text-gray-700 hover:text-gray-900">
-                Maybe Later
-            </button>
-            <a href="/pricing" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                Upgrade Now
-                <svg class="ml-2 -mr-1 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
-                </svg>
-            </a>
-        </div>
+<div class="modal fade" id="upgradeModal" tabindex="-1" aria-labelledby="upgradeModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="upgradeModalLabel">Upgrade Your Plan</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        You have reached your presentation limit. Please upgrade your plan to continue creating presentations.
+      </div>
+      <div class="modal-footer">
+        <a href="/pricing" class="btn btn-primary">View Plans</a>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
     </div>
+  </div>
 </div>
 
 <div class="max-w-4xl mx-auto">
@@ -123,42 +75,9 @@
 </div>
 
 <script>
-function showUpgradeModal(data) {
-    const modal = document.getElementById('upgradeModal');
-    const currentPlan = data.current_plan;
-    const upgrade = data.upgrade;
-
-    // Set limit message
-    document.getElementById('limitMessage').textContent = data.message;
-
-    // Update current plan info
-    document.getElementById('currentPlanName').textContent = currentPlan.name;
-    document.getElementById('usageStats').textContent = 
-        `${currentPlan.used} of ${currentPlan.limit} presentations used this month`;
-    document.getElementById('usageIndicator').textContent = 
-        `${currentPlan.used}/${currentPlan.limit}`;
-
-    // Update upgrade option if available
-    if (upgrade) {
-        document.getElementById('upgradePlanName').textContent = upgrade.plan;
-        document.getElementById('upgradePlanPrice').textContent = 
-            `$${(upgrade.price / 100).toFixed(2)} per month`;
-        document.getElementById('presentationLimit').textContent = 
-            `${upgrade.limit} presentations per month`;
-        document.getElementById('upgradeOption').classList.remove('hidden');
-    } else {
-        document.getElementById('upgradeOption').classList.add('hidden');
-    }
-
-    // Show modal
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
-}
-
-function closeUpgradeModal() {
-    const modal = document.getElementById('upgradeModal');
-    modal.classList.add('hidden');
-    modal.classList.remove('flex');
+function showUpgradeModal() {
+    const modal = new bootstrap.Modal(document.getElementById('upgradeModal'));
+    modal.show();
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -221,27 +140,17 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const data = await response.json();
             
-            // Check if response is JSON
-            const contentType = response.headers.get('content-type');
-            if (contentType && contentType.includes('application/json')) {
-                if (data.error === 'limit_reached') {
-                    showUpgradeModal(data);
-                    return;
-                }
-                
-                if (data.file_url) {
-                    window.location.href = data.file_url;
-                    return;
-                }
-
-                throw new Error(data.message || 'An unexpected error occurred');
+            if (!response.ok) {
+                return response.json().then(error => { throw error; });
             }
-
-            // If not JSON, assume it's a file download
-            window.location.href = response.url;
+            return response.blob();
             }
         } catch (error) {
-            showError('Sorry! We encountered an issue while creating your presentation. Please try again.');
+            if (error.error === 'limit_reached') {
+                showUpgradeModal();
+            } else {
+                alert('An unexpected error occurred. Please try again.');
+            }
         } finally {
             submitButton.disabled = false;
             submitButton.innerHTML = 'Generate Presentation';

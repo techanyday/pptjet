@@ -368,30 +368,13 @@ def generate():
         presentations_used = get_presentations_this_month(current_user)
         
         if presentations_used >= plan['presentations']:
-            next_tier = None
-            if current_user.plan == 'free':
-                next_tier = PLANS['creator']
-            elif current_user.plan == 'creator':
-                next_tier = PLANS['pro']
-
-            response = {
-                "error": "limit_reached",
-                "message": "You've reached your monthly limit of {} presentations.".format(plan['presentations']),
-                "current_plan": {
-                    "name": plan['name'],
-                    "limit": plan['presentations'],
-                    "used": presentations_used
-                }
-            }
-            
-            if next_tier:
-                response["upgrade"] = {
-                    "plan": next_tier['name'],
-                    "limit": next_tier['presentations'],
-                    "price": next_tier['price']
-                }
-            
-            return response, 400  # Use 400 to prevent default browser handling
+            return jsonify({
+                'error': 'limit_reached',
+                'message': 'You have reached your presentation limit. Please upgrade your plan.',
+                'current_plan': plan['name'],
+                'limit': plan['presentations'],
+                'used': presentations_used
+            }), 403
 
         # Extract and validate required fields
         prompt = data.get("prompt")
