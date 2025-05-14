@@ -79,7 +79,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    title: 'Generated Presentation',
+                    title: document.getElementById('prompt').value,
                     presenter: '{{ user.name }}',
                     prompt: document.getElementById('prompt').value,
                     num_slides: parseInt(document.getElementById('num_slides').value),
