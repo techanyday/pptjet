@@ -193,20 +193,18 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const data = await response.json();
             
-            if (response.ok) {
+            if (data.status === 'limit_reached') {
+                showUpgradeModal(
+                    data.current_plan,
+                    data.presentations_used,
+                    data.presentations_limit,
+                    data.next_tier
+                );
+            } else if (data.file_url) {
                 window.location.href = data.file_url;
             } else {
-                if (data.code === 'LIMIT_REACHED') {
-                    // Show upgrade modal instead of redirecting
-                    showUpgradeModal(
-                        data.current_plan,
-                        data.presentations_used,
-                        data.presentations_used, // total = used since we hit the limit
-                        data.next_tier
-                    );
-                } else {
-                    showError(data.error || 'Sorry! We encountered an issue while creating your presentation. Please try again.');
-                }
+                showError(data.error || 'Sorry! We encountered an issue while creating your presentation. Please try again.');
+            }
             }
         } catch (error) {
             showError('Sorry! We encountered an issue while creating your presentation. Please try again.');

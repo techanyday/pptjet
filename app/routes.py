@@ -375,12 +375,13 @@ def generate():
                 next_tier = PLANS['pro']
             
             return jsonify({
-                "error": "You've reached your monthly limit of {} presentations.".format(plan['presentations']),
-                "code": "LIMIT_REACHED",
+                "status": "limit_reached",
+                "message": "You've reached your monthly limit of {} presentations.".format(plan['presentations']),
                 "current_plan": plan['name'],
                 "next_tier": next_tier,
-                "presentations_used": presentations_used
-            }), 403
+                "presentations_used": presentations_used,
+                "presentations_limit": plan['presentations']
+            }), 200
 
         # Extract and validate required fields
         prompt = data.get("prompt")
