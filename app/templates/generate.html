@@ -106,20 +106,11 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             const currentPlan = document.querySelector('.text-sm.text-gray-600').textContent.trim();
             // Show upgrade modal immediately without making API call
-            showUpgradeModal(
-                currentPlan,
-                3, // Since we know it's the free plan limit
-                3,
-                {
-                    name: 'Creator Plan',
-                    presentations: 20
-                }
-            );
+            showUpgradeModal();
             return;
         }
-        e.preventDefault();
         
-        const submitButton = this.querySelector('button[type="submit"]');
+        const submitButton = document.querySelector('button[type="submit"]');
         submitButton.disabled = true;
         submitButton.innerHTML = 'Generating...';
         
@@ -136,21 +127,40 @@ document.addEventListener('DOMContentLoaded', function() {
                 })
             });
             
-            const data = await response.json();
-            
-            if (data.error === 'limit_reached') {
-                showUpgradeModal();
-                return;
+            // Check content type to determine if it's an error or a file
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                // It's a JSON response, likely an error
+                const data = await response.json();
+                if (data.error === 'limit_reached') {
+                    showUpgradeModal();
+                    return;
+                }
+                throw new Error(data.message || 'An unexpected error occurred');
             }
             
-            // If successful, redirect to the success page
-            window.location.href = '/success';
+            // If we get here, it's a file download
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'presentation.pptx';
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            a.remove();
+
+            // Update presentations left count
+            const presentationsLeft = response.headers.get('X-Presentations-Left');
+            if (presentationsLeft) {
+                document.getElementById('presentations-left').textContent = presentationsLeft;
             }
         } catch (error) {
+            console.error('Error:', error);
             if (error.error === 'limit_reached') {
                 showUpgradeModal();
             } else {
-                alert('An unexpected error occurred. Please try again.');
+                alert(error.message || 'An error occurred while generating your presentation');
             }
         } finally {
             submitButton.disabled = false;
