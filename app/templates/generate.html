@@ -45,21 +45,29 @@
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">Select Template Style</label>
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div class="template-option cursor-pointer" data-template="Aesthetic">
-                        <img src="{{ url_for('static', filename='images/templates/aesthetic.jpg') }}" alt="Aesthetic template" class="w-full h-24 object-cover rounded-lg">
-                        <p class="text-center mt-2">Aesthetic</p>
+                    <div class="template-option cursor-pointer transition-all duration-200 hover:scale-105" data-template="Aesthetic">
+                        <div class="relative rounded-lg overflow-hidden border-2 border-transparent hover:border-blue-200">
+                            <img src="{{ url_for('static', filename='images/templates/aesthetic.jpg') }}" alt="Aesthetic template" class="w-full h-24 object-cover">
+                            <p class="text-center py-2 bg-white/90 backdrop-blur-sm border-t border-gray-100">Aesthetic</p>
+                        </div>
                     </div>
-                    <div class="template-option cursor-pointer" data-template="Minimalist">
-                        <img src="{{ url_for('static', filename='images/templates/minimalist.jpg') }}" alt="Minimalist template" class="w-full h-24 object-cover rounded-lg">
-                        <p class="text-center mt-2">Minimalist</p>
+                    <div class="template-option cursor-pointer transition-all duration-200 hover:scale-105" data-template="Minimalist">
+                        <div class="relative rounded-lg overflow-hidden border-2 border-transparent hover:border-blue-200">
+                            <img src="{{ url_for('static', filename='images/templates/minimalist.jpg') }}" alt="Minimalist template" class="w-full h-24 object-cover">
+                            <p class="text-center py-2 bg-white/90 backdrop-blur-sm border-t border-gray-100">Minimalist</p>
+                        </div>
                     </div>
-                    <div class="template-option cursor-pointer" data-template="Professional">
-                        <img src="{{ url_for('static', filename='images/templates/professional.jpg') }}" alt="Professional template" class="w-full h-24 object-cover rounded-lg">
-                        <p class="text-center mt-2">Professional</p>
+                    <div class="template-option cursor-pointer transition-all duration-200 hover:scale-105" data-template="Professional">
+                        <div class="relative rounded-lg overflow-hidden border-2 border-transparent hover:border-blue-200">
+                            <img src="{{ url_for('static', filename='images/templates/professional.jpg') }}" alt="Professional template" class="w-full h-24 object-cover">
+                            <p class="text-center py-2 bg-white/90 backdrop-blur-sm border-t border-gray-100">Professional</p>
+                        </div>
                     </div>
-                    <div class="template-option cursor-pointer" data-template="Vintage">
-                        <img src="{{ url_for('static', filename='images/templates/vintage.jpg') }}" alt="Vintage template" class="w-full h-24 object-cover rounded-lg">
-                        <p class="text-center mt-2">Vintage</p>
+                    <div class="template-option cursor-pointer transition-all duration-200 hover:scale-105" data-template="Vintage">
+                        <div class="relative rounded-lg overflow-hidden border-2 border-transparent hover:border-blue-200">
+                            <img src="{{ url_for('static', filename='images/templates/vintage.jpg') }}" alt="Vintage template" class="w-full h-24 object-cover">
+                            <p class="text-center py-2 bg-white/90 backdrop-blur-sm border-t border-gray-100">Vintage</p>
+                        </div>
                     </div>
                 </div>
                 <input type="hidden" id="template_style" name="template_style" value="Professional">
@@ -88,9 +96,15 @@ document.addEventListener('DOMContentLoaded', function() {
     templateOptions.forEach(option => {
         option.addEventListener('click', function() {
             // Remove selected class from all options
-            templateOptions.forEach(opt => opt.classList.remove('ring-2', 'ring-blue-500'));
+            templateOptions.forEach(opt => {
+                const container = opt.querySelector('div');
+                container.classList.remove('border-blue-500');
+                container.classList.add('border-transparent');
+            });
             // Add selected class to clicked option
-            this.classList.add('ring-2', 'ring-blue-500');
+            const container = this.querySelector('div');
+            container.classList.remove('border-transparent');
+            container.classList.add('border-blue-500');
             // Update hidden input
             templateInput.value = this.dataset.template;
         });
@@ -98,6 +112,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Form submission
     document.getElementById('presentationForm').addEventListener('submit', async function(e) {
+        e.preventDefault();  // Prevent form from submitting normally
         // Get current presentations count from the page
         const presentationsLeft = parseInt(document.getElementById('presentations-left').textContent);
         
@@ -149,23 +164,11 @@ document.addEventListener('DOMContentLoaded', function() {
             window.URL.revokeObjectURL(url);
             a.remove();
 
-            // Update presentations left count
-            const presentationsLeft = response.headers.get('X-Presentations-Left');
-            if (presentationsLeft) {
-                const count = parseInt(presentationsLeft);
-                document.getElementById('presentations-left').textContent = count;
-                document.getElementById('plural-s').textContent = count !== 1 ? 's' : '';
-                
-                // Update color based on count
-                const countElement = document.getElementById('presentations-count');
-                if (count <= 1) {
-                    countElement.classList.remove('text-gray-600');
-                    countElement.classList.add('text-red-600');
-                } else {
-                    countElement.classList.remove('text-red-600');
-                    countElement.classList.add('text-gray-600');
-                }
-            }
+            // Wait a moment for the download to start
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // Reload the page to get fresh data
+            window.location.reload();
         } catch (error) {
             console.error('Error:', error);
             if (error.error === 'limit_reached') {
