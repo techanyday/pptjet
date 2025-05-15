@@ -424,6 +424,7 @@ def generate():
             
             # Add presentations left to response headers
             response.headers['X-Presentations-Left'] = str(presentations_left)
+            response.headers['Access-Control-Expose-Headers'] = 'X-Presentations-Left'
             
             return response
 
