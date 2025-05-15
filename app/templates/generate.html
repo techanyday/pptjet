@@ -130,21 +130,25 @@ document.addEventListener('DOMContentLoaded', function() {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-
-
                     prompt: document.getElementById('prompt').value,
                     num_slides: parseInt(document.getElementById('num_slides').value),
                     template_style: document.getElementById('template_style').value
                 })
             });
             
-            const data = await response.json();
-            
-            if (!response.ok) {
-                return response.json().then(error => { throw error; });
+            // Check content type to determine if it's an error or a file
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                // It's a JSON response, likely an error
+                const data = await response.json();
+                if (data.error === 'limit_reached') {
+                    showUpgradeModal();
+                    return;
+                }
+                throw new Error(data.message || 'An unexpected error occurred');
             }
             
-            // Get the file and trigger download
+            // If we get here, it's a file download
             const blob = await response.blob();
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
