@@ -399,25 +399,27 @@ def generate():
             presentation_title = result['suggested_title']
             
             # Create presentation
-            filepath = ppt_generator.create_presentation(
+            pptx_file = ppt_generator.create_presentation(
                 title=presentation_title,
                 presenter=presenter,
                 slides_content=result['slides'],
                 template=template_style
             )
             
-            # Get filename from path
-            filename = os.path.basename(filepath)
-            
-            # Record this presentation
+            # Update presentations count
             add_presentation_record(current_user)
             
-            return jsonify({
-                'success': True,
-                'filename': filename,
-                'file_url': f'/download/{filename}'
-            })
+            # Save file temporarily
+            temp_path = os.path.join(GENERATED_FOLDER, f'presentation_{current_user.id}.pptx')
+            os.makedirs(os.path.dirname(temp_path), exist_ok=True)
+            shutil.copy2(pptx_file, temp_path)
             
+            # Store the file path in session for download
+            session['presentation_file'] = temp_path
+            
+            # Redirect to success page
+            return redirect(url_for('main.success'))
+
         except Exception as e:
             return jsonify({"error": f"Error generating presentation: {str(e)}"}), 500
 
@@ -425,8 +427,33 @@ def generate():
         return jsonify({"error": f"Server error: {str(e)}"}), 500
 
 
-@bp.route("/download/<filename>")
+@bp.route('/success')
 @login_required
-def download_file(filename):
-    return send_from_directory(GENERATED_FOLDER, filename, as_attachment=True)
+def success():
+    """Show success page and trigger file download"""
+    # Get user's plan and presentations left
+    plan = get_user_plan(current_user)
+    presentations_used = get_presentations_this_month(current_user)
+    presentations_left = plan['presentations'] - presentations_used
+    
+    return render_template(
+        'success.html',
+        presentations_left=presentations_left
+    )
+
+@bp.route('/download-presentation')
+@login_required
+def download_presentation():
+    """Download the generated presentation"""
+    temp_path = session.get('presentation_file')
+    if not temp_path or not os.path.exists(temp_path):
+        flash('Could not find your presentation file.', 'error')
+        return redirect(url_for('main.generate'))
+    
+    return send_file(
+        temp_path,
+        as_attachment=True,
+        download_name='presentation.pptx',
+        mimetype='application/vnd.openxmlformats-officedocument.presentationml.presentation'
+    )
 

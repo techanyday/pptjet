@@ -136,33 +136,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 })
             });
             
-            // Check content type to determine if it's an error or a file
-            const contentType = response.headers.get('content-type');
-            if (contentType && contentType.includes('application/json')) {
-                // It's a JSON response, likely an error
-                const data = await response.json();
-                if (data.error === 'limit_reached') {
-                    showUpgradeModal();
-                    return;
-                }
-                throw new Error(data.message || 'An unexpected error occurred');
+            const data = await response.json();
+            
+            if (data.error === 'limit_reached') {
+                showUpgradeModal();
+                return;
             }
             
-            // If we get here, it's a file download
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'presentation.pptx';
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            a.remove();
-
-            // Refresh the page after a short delay to allow download to start
-            setTimeout(() => {
-                window.location.reload();
-            }, 1000);
+            // If successful, redirect to the success page
+            window.location.href = '/success';
             }
         } catch (error) {
             if (error.error === 'limit_reached') {
