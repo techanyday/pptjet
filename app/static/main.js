@@ -1,6 +1,6 @@
 document.getElementById('generateBtn').addEventListener('click', function() {
     const formData = new FormData();
-    formData.append('dummy', 'value'); // Adjust with real form data if needed
+    formData.append('dummy', 'value'); // Example data, adjust if necessary
 
     fetch('/generate_presentation', {
         method: 'POST',
@@ -13,7 +13,7 @@ document.getElementById('generateBtn').addEventListener('click', function() {
         return response.json();
     })
     .then(data => {
-        // Update the count without page reload
+        // Update the count dynamically
         document.getElementById('presentationsRemaining').textContent = data.presentations_remaining;
         alert(data.message);
     })
