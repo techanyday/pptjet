@@ -351,17 +351,17 @@ def generate():
                              plan_name=plan['name'])
 
     try:
-        data = request.get_json()
-        if not data:
-            return jsonify({"error": "No JSON data received"}), 400
+        # Get form data
+        prompt = request.form.get('prompt')
+        if not prompt:
+            flash('Please provide a topic for the presentation', 'error')
+            return redirect(url_for('main.generate'))
             
         # Load latest user data to ensure we have current plan
         users = load_users()
         if current_user.id not in users:
-            return jsonify({
-                "error": "User data not found. Please try logging in again.",
-                "code": "USER_NOT_FOUND"
-            }), 404
+            flash('User data not found. Please try logging in again.', 'error')
+            return redirect(url_for('main.generate'))
             
         # Update current user's plan from storage
         current_user.plan = users[current_user.id]['plan']
@@ -371,25 +371,13 @@ def generate():
         presentations_used = get_presentations_this_month(current_user)
         
         if presentations_used >= plan['presentations']:
-            return jsonify({
-                'error': 'limit_reached',
-                'message': 'You have reached your presentation limit. Please upgrade your plan.',
-                'current_plan': plan['name'],
-                'limit': plan['presentations'],
-                'used': presentations_used
-            }), 403
+            flash('You have reached your presentation limit. Please upgrade your plan.', 'error')
+            return redirect(url_for('main.generate'))
 
-        # Extract and validate required fields
-        prompt = data.get("prompt")
-        if not prompt:
-            return jsonify({"error": "Please provide a topic for the presentation"}), 400
-            
-        # Get presenter from current user
+        # Get form data
         presenter = current_user.name
-
-        # Extract optional fields with defaults
-        num_slides = int(data.get("num_slides", 5))
-        template_style = data.get("template_style", "Professional")
+        num_slides = int(request.form.get('num_slides', 5))
+        template_style = request.form.get('template_style', 'Professional')
 
         # Initialize PPT generator
         ppt_generator = PPTGenerator()
@@ -433,10 +421,12 @@ def generate():
             return redirect(url_for('main.download_success', presentation_id=presentation_id))
 
         except Exception as e:
-            return jsonify({"error": f"Error generating presentation: {str(e)}"}), 500
+            flash(f'Error generating presentation: {str(e)}', 'error')
+            return redirect(url_for('main.generate'))
 
     except Exception as e:
-        return jsonify({"error": f"Server error: {str(e)}"}), 500
+        flash(f'Server error: {str(e)}', 'error')
+        return redirect(url_for('main.generate'))
 
 @bp.route('/download/success/<presentation_id>')
 @login_required
