@@ -141,34 +141,34 @@ document.addEventListener('DOMContentLoaded', function() {
                 })
             });
             
-            // Check content type to determine if it's an error or a file
-            const contentType = response.headers.get('content-type');
-            if (contentType && contentType.includes('application/json')) {
-                // It's a JSON response, likely an error
-                const data = await response.json();
-                if (data.error === 'limit_reached') {
-                    showUpgradeModal();
-                    return;
-                }
+            const data = await response.json();
+            
+            if (data.error === 'limit_reached') {
+                showUpgradeModal();
+                return;
+            }
+            
+            if (!data.success) {
                 throw new Error(data.message || 'An unexpected error occurred');
             }
             
-            // If we get here, it's a file download
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'presentation.pptx';
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            a.remove();
-
-            // Wait a moment for the download to start
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            // Update the UI immediately
+            const count = data.presentations_left;
+            document.getElementById('presentations-left').textContent = count;
+            document.getElementById('plural-s').textContent = count !== 1 ? 's' : '';
             
-            // Reload the page to get fresh data
-            window.location.reload();
+            // Update color based on count
+            const countElement = document.getElementById('presentations-count');
+            if (count <= 1) {
+                countElement.classList.remove('text-gray-600');
+                countElement.classList.add('text-red-600');
+            } else {
+                countElement.classList.remove('text-red-600');
+                countElement.classList.add('text-gray-600');
+            }
+            
+            // Start the download
+            window.location.href = `/download/${data.download_id}`;
         } catch (error) {
             console.error('Error:', error);
             if (error.error === 'limit_reached') {

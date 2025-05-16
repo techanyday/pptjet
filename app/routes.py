@@ -417,17 +417,10 @@ def generate():
                 template=template_style
             )
             
-            # Return both the file and updated count
-            response = send_file(
-                pptx_file,
-                as_attachment=True,
-                download_name='presentation.pptx',
-                mimetype='application/vnd.openxmlformats-officedocument.presentationml.presentation'
-            )
-            
-            # Add presentations left to response headers
-            response.headers['X-Presentations-Left'] = str(presentations_left)
-            response.headers['Access-Control-Expose-Headers'] = 'X-Presentations-Left'
+            # Save the file with a unique name
+            presentation_id = str(int(datetime.now().timestamp()))
+            save_path = os.path.join(GENERATED_FOLDER, f"{presentation_id}.pptx")
+            pptx_file.save(save_path)
             
             # Force save to ensure count is updated
             users = load_users()
@@ -436,13 +429,37 @@ def generate():
             users[current_user.id]['presentations'] = current_user.presentations
             save_users(users)
             
-            return response
+            # Return success response with download URL
+            return jsonify({
+                'success': True,
+                'message': 'Presentation generated successfully',
+                'presentations_left': presentations_left,
+                'download_id': presentation_id
+            })
 
         except Exception as e:
             return jsonify({"error": f"Error generating presentation: {str(e)}"}), 500
 
     except Exception as e:
         return jsonify({"error": f"Server error: {str(e)}"}), 500
+
+@bp.route('/download/<presentation_id>')
+@login_required
+def download_presentation(presentation_id):
+    """Download a generated presentation"""
+    try:
+        file_path = os.path.join(GENERATED_FOLDER, f"{presentation_id}.pptx")
+        if not os.path.exists(file_path):
+            return jsonify({"error": "Presentation not found"}), 404
+            
+        return send_file(
+            file_path,
+            as_attachment=True,
+            download_name='presentation.pptx',
+            mimetype='application/vnd.openxmlformats-officedocument.presentationml.presentation'
+        )
+    except Exception as e:
+        return jsonify({"error": f"Error downloading presentation: {str(e)}"}), 500
 
 
 
