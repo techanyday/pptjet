@@ -324,12 +324,15 @@ def add_presentation_record(user):
     from datetime import datetime
     
     # Add current timestamp to presentations list
+    if not hasattr(user, 'presentations'):
+        user.presentations = []
     user.presentations.append(datetime.now().timestamp())
+    
     # Update user data in database
     users = load_users()
-    users[user.id].update({
-        'presentations': user.presentations
-    })
+    if user.id not in users:
+        users[user.id] = {}
+    users[user.id]['presentations'] = user.presentations
     save_users(users)
 
 @bp.route("/generate", methods=["GET", "POST"])
@@ -398,6 +401,14 @@ def generate():
             # Use the suggested title instead of the raw prompt
             presentation_title = result['suggested_title']
             
+            # Update presentations count first
+            add_presentation_record(current_user)
+            
+            # Get updated presentation count
+            plan = get_user_plan(current_user)
+            presentations_used = get_presentations_this_month(current_user)
+            presentations_left = plan['presentations'] - presentations_used
+            
             # Create presentation
             pptx_file = ppt_generator.create_presentation(
                 title=presentation_title,
@@ -405,14 +416,6 @@ def generate():
                 slides_content=result['slides'],
                 template=template_style
             )
-            
-            # Update presentations count
-            add_presentation_record(current_user)
-            
-            # Get updated presentation count
-            plan = get_user_plan(current_user)
-            presentations_used = get_presentations_this_month(current_user)
-            presentations_left = plan['presentations'] - presentations_used
             
             # Return both the file and updated count
             response = send_file(
@@ -425,6 +428,13 @@ def generate():
             # Add presentations left to response headers
             response.headers['X-Presentations-Left'] = str(presentations_left)
             response.headers['Access-Control-Expose-Headers'] = 'X-Presentations-Left'
+            
+            # Force save to ensure count is updated
+            users = load_users()
+            if current_user.id not in users:
+                users[current_user.id] = {}
+            users[current_user.id]['presentations'] = current_user.presentations
+            save_users(users)
             
             return response
 
