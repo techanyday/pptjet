@@ -7,7 +7,11 @@
 </head>
 <body>
     <h1>AI PowerPoint Generator</h1>
+
+    <p>Welcome, {{ current_user.username }}</p>
+
     <p>Presentations remaining: <span id="presentationsRemaining">{{ current_user.presentations_remaining }}</span></p>
+
     <button id="generateBtn">Generate Presentation</button>
 
     <script src="{{ url_for('static', filename='main.js') }}"></script>

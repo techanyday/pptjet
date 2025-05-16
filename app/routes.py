@@ -40,6 +40,11 @@ def check_subscription(f):
         return f(*args, **kwargs)
     return decorated_function
 
+# ➡ Root route added here
+@main.route('/')
+def home():
+    return redirect(url_for('main.dashboard'))
+
 # Serve template image route
 @main.route('/static/images/templates/<template>.jpg')
 def serve_template_image(template):
