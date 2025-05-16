@@ -18,14 +18,15 @@ def save_users(users):
     with open(USERS_FILE, 'w') as f:
         json.dump(users, f, indent=2)
 
-class User(UserMixin):
-    def __init__(self, id_, name, email, profile_pic, plan='free', presentations=None):
-        self.id = id_
-        self.name = name
-        self.email = email
-        self.profile_pic = profile_pic
-        self.plan = plan
-        self.presentations = presentations or []
+from flask_sqlalchemy import SQLAlchemy
+
+db = SQLAlchemy()
+
+class User(UserMixin, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(150), unique=True, nullable=False)
+    password = db.Column(db.String(150), nullable=False)
+    presentations_remaining = db.Column(db.Integer, default=3)  # Default for Free Plan
 
     @staticmethod
     def get(user_id):

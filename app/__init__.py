@@ -1,29 +1,28 @@
 from flask import Flask
-from dotenv import load_dotenv
-import os
+from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
-from oauthlib.oauth2 import WebApplicationClient
 
-# In-memory storage for users (replace with database in production)
+db = SQLAlchemy()
+login_manager = LoginManager()
 
 def create_app():
-    # Create Flask app
-    app = Flask(
-        __name__,
-        static_folder='static',
-        static_url_path='/static'
-    )
-    
-    # Load environment variables
-    env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
-    print("Loading .env from:", os.path.abspath(env_path))
-    load_dotenv(env_path)
-    
-    # Configure app
-    app.config['GENERATED_FOLDER'] = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'generated')
-    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or os.urandom(24)
-    # Configure OAuth client
-    client_secrets = {
+    app = Flask(__name__)
+    app.config['SECRET_KEY'] = 'your_secret_key'
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///db.sqlite3'
+
+    db.init_app(app)
+    login_manager.init_app(app)
+
+    from .models import User
+
+    @login_manager.user_loader
+    def load_user(user_id):
+        return User.query.get(int(user_id))
+
+    from .routes import main as main_blueprint
+    app.register_blueprint(main_blueprint)
+
+    return app
         "web": {
             "client_id": os.getenv("GOOGLE_OAUTH_CLIENT_ID"),
             "client_secret": os.getenv("GOOGLE_OAUTH_CLIENT_SECRET"),

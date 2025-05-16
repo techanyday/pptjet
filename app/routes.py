@@ -1,13 +1,11 @@
 import os
 import json
 import requests
-from flask import Blueprint, render_template, request, redirect, url_for, flash, send_from_directory, current_app, session, jsonify
-import requests
-from functools import wraps
+from flask import Blueprint, jsonify, request, render_template, redirect, url_for, flash, send_from_directory, current_app, session
 from flask_login import login_required, login_user, logout_user, current_user
 from app.utils.ppt_generator import PPTGenerator
 from app.models import User, load_users, save_users
-
+from app import db
 
 # Google OAuth 2.0 endpoints
 GOOGLE_DISCOVERY_URL = "https://accounts.google.com/.well-known/openid-configuration"
@@ -335,98 +333,28 @@ def add_presentation_record(user):
     users[user.id]['presentations'] = user.presentations
     save_users(users)
 
-@bp.route("/generate", methods=["GET", "POST"])
+@main.route('/dashboard')
 @login_required
-@check_subscription
-def generate():
-    if request.method == "GET":
-        # Get user's plan and usage
-        plan = get_user_plan(current_user)
-        presentations_used = get_presentations_this_month(current_user)
-        presentations_left = plan['presentations'] - presentations_used
-        
-        return render_template('generate.html', 
-                             user=current_user,
-                             presentations_left=presentations_left,
-                             plan_name=plan['name'])
+def dashboard():
+    return render_template('dashboard.html')
 
-    try:
-        # Get form data
-        prompt = request.form.get('prompt')
-        if not prompt:
-            flash('Please provide a topic for the presentation', 'error')
-            return redirect(url_for('main.generate'))
-            
-        # Load latest user data to ensure we have current plan
-        users = load_users()
-        if current_user.id not in users:
-            flash('User data not found. Please try logging in again.', 'error')
-            return redirect(url_for('main.generate'))
-            
-        # Update current user's plan from storage
-        current_user.plan = users[current_user.id]['plan']
-        
-        # Check presentation limit
-        plan = get_user_plan(current_user)
-        presentations_used = get_presentations_this_month(current_user)
-        
-        if presentations_used >= plan['presentations']:
-            flash('You have reached your presentation limit. Please upgrade your plan.', 'error')
-            return redirect(url_for('main.generate'))
+@main.route('/generate_presentation', methods=['POST'])
+@login_required
+def generate_presentation():
+    if current_user.presentations_remaining <= 0:
+        return jsonify({
+            'error': 'limit_reached',
+            'message': 'You have reached your presentation limit. Please upgrade your plan.'
+        }), 403
 
-        # Get form data
-        presenter = current_user.name
-        num_slides = int(request.form.get('num_slides', 5))
-        template_style = request.form.get('template_style', 'Professional')
+    # Simulate presentation generation logic here
 
-        # Initialize PPT generator
-        ppt_generator = PPTGenerator()
-        
-        try:
-            # Generate slide content with suggested title
-            result = ppt_generator.generate_slide_content(prompt, num_slides)
-            
-            # Use the suggested title instead of the raw prompt
-            presentation_title = result['suggested_title']
-            
-            # Update presentations count first
-            add_presentation_record(current_user)
-            
-            # Get updated presentation count
-            plan = get_user_plan(current_user)
-            presentations_used = get_presentations_this_month(current_user)
-            presentations_left = plan['presentations'] - presentations_used
-            
-            # Create presentation
-            pptx_file = ppt_generator.create_presentation(
-                title=presentation_title,
-                presenter=presenter,
-                slides_content=result['slides'],
-                template=template_style
-            )
-            
-            # Save the file with a unique name
-            presentation_id = str(int(datetime.now().timestamp()))
-            save_path = os.path.join(GENERATED_FOLDER, f"{presentation_id}.pptx")
-            pptx_file.save(save_path)
-            
-            # Force save to ensure count is updated
-            users = load_users()
-            if current_user.id not in users:
-                users[current_user.id] = {}
-            users[current_user.id]['presentations'] = current_user.presentations
-            save_users(users)
-            
-            # Redirect to download page
-            return redirect(url_for('main.download_success', presentation_id=presentation_id))
-
-        except Exception as e:
-            flash(f'Error generating presentation: {str(e)}', 'error')
-            return redirect(url_for('main.generate'))
-
-    except Exception as e:
-        flash(f'Server error: {str(e)}', 'error')
-        return redirect(url_for('main.generate'))
+    current_user.presentations_remaining -= 1
+    db.session.commit()
+    return jsonify({
+        'message': 'Presentation generated successfully.',
+        'presentations_remaining': current_user.presentations_remaining
+    }), 200
 
 @bp.route('/download/success/<presentation_id>')
 @login_required
