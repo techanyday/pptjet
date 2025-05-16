@@ -31,7 +31,7 @@
                 </p>
             </div>
         </div>
-        <form id="presentationForm" class="space-y-6">
+        <form id="presentationForm" class="space-y-6" method="POST" action="{{ url_for('main.generate') }}">
             <div>
                 <label for="num_slides" class="block text-sm font-medium text-gray-700 mb-2">Number of Slides</label>
                 <input type="number" id="num_slides" name="num_slides" min="1" max="20" value="5" class="w-32 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
@@ -111,75 +111,22 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Form submission
-    document.getElementById('presentationForm').addEventListener('submit', async function(e) {
-        e.preventDefault();  // Prevent form from submitting normally
+    document.getElementById('presentationForm').addEventListener('submit', function(e) {
         // Get current presentations count from the page
         const presentationsLeft = parseInt(document.getElementById('presentations-left').textContent);
         
         if (presentationsLeft <= 0) {
             e.preventDefault();
-            const currentPlan = document.querySelector('.text-sm.text-gray-600').textContent.trim();
-            // Show upgrade modal immediately without making API call
             showUpgradeModal();
             return;
         }
         
+        // Update button state
         const submitButton = document.querySelector('button[type="submit"]');
         submitButton.disabled = true;
         submitButton.innerHTML = 'Generating...';
         
-        try {
-            const response = await fetch('/generate', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    prompt: document.getElementById('prompt').value,
-                    num_slides: parseInt(document.getElementById('num_slides').value),
-                    template_style: document.getElementById('template_style').value
-                })
-            });
-            
-            const data = await response.json();
-            
-            if (data.error === 'limit_reached') {
-                showUpgradeModal();
-                return;
-            }
-            
-            if (!data.success) {
-                throw new Error(data.message || 'An unexpected error occurred');
-            }
-            
-            // Update the UI immediately
-            const count = data.presentations_left;
-            document.getElementById('presentations-left').textContent = count;
-            document.getElementById('plural-s').textContent = count !== 1 ? 's' : '';
-            
-            // Update color based on count
-            const countElement = document.getElementById('presentations-count');
-            if (count <= 1) {
-                countElement.classList.remove('text-gray-600');
-                countElement.classList.add('text-red-600');
-            } else {
-                countElement.classList.remove('text-red-600');
-                countElement.classList.add('text-gray-600');
-            }
-            
-            // Start the download
-            window.location.href = `/download/${data.download_id}`;
-        } catch (error) {
-            console.error('Error:', error);
-            if (error.error === 'limit_reached') {
-                showUpgradeModal();
-            } else {
-                alert(error.message || 'An error occurred while generating your presentation');
-            }
-        } finally {
-            submitButton.disabled = false;
-            submitButton.innerHTML = 'Generate Presentation';
-        }
+        // Let the form submit normally - it will redirect to the success page
     });
 });
 </script>

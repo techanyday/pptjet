@@ -429,13 +429,8 @@ def generate():
             users[current_user.id]['presentations'] = current_user.presentations
             save_users(users)
             
-            # Return success response with download URL
-            return jsonify({
-                'success': True,
-                'message': 'Presentation generated successfully',
-                'presentations_left': presentations_left,
-                'download_id': presentation_id
-            })
+            # Redirect to download page
+            return redirect(url_for('main.download_success', presentation_id=presentation_id))
 
         except Exception as e:
             return jsonify({"error": f"Error generating presentation: {str(e)}"}), 500
@@ -443,14 +438,32 @@ def generate():
     except Exception as e:
         return jsonify({"error": f"Server error: {str(e)}"}), 500
 
-@bp.route('/download/<presentation_id>')
+@bp.route('/download/success/<presentation_id>')
 @login_required
-def download_presentation(presentation_id):
+def download_success(presentation_id):
+    """Show success page with download link"""
+    # Get user's plan and usage
+    plan = get_user_plan(current_user)
+    presentations_used = get_presentations_this_month(current_user)
+    presentations_left = plan['presentations'] - presentations_used
+    
+    # Generate download URL
+    download_url = url_for('main.download_file', presentation_id=presentation_id)
+    
+    return render_template('download.html',
+                          download_url=download_url,
+                          presentations_left=presentations_left,
+                          plan_name=plan['name'])
+
+@bp.route('/download/file/<presentation_id>')
+@login_required
+def download_file(presentation_id):
     """Download a generated presentation"""
     try:
         file_path = os.path.join(GENERATED_FOLDER, f"{presentation_id}.pptx")
         if not os.path.exists(file_path):
-            return jsonify({"error": "Presentation not found"}), 404
+            flash('Presentation not found', 'error')
+            return redirect(url_for('main.generate'))
             
         return send_file(
             file_path,
@@ -459,7 +472,8 @@ def download_presentation(presentation_id):
             mimetype='application/vnd.openxmlformats-officedocument.presentationml.presentation'
         )
     except Exception as e:
-        return jsonify({"error": f"Error downloading presentation: {str(e)}"}), 500
+        flash(f'Error downloading presentation: {str(e)}', 'error')
+        return redirect(url_for('main.generate'))
 
 
 
