@@ -20,3 +20,5 @@ if __name__ == '__main__':
             print('Created test user: test@example.com / test123')
 
     app.run(debug=True)
+
+# Test comment
